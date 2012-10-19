@@ -46,13 +46,15 @@ function range(start,end,amount)
 }
 
 function mapPure(data,f) {
-    if(!valid(data) || !valid(f)) throw GOE.InvalidParameterException;
+    if(!valid(data) || !valid(f)) throw GOLException.InvalidParameterException;
     var tmp_ar = data.slice(0,data.length);
     return tmp_ar.map(f);
 }
 
 function mapRowPure(data,width,height,f) {
-    if(!valid(data) || !valid(width) || !valid(height) || !valid(f)) throw GOE.InvalidParameterException;
+    if(!valid(data) || !valid(width) || !valid(height) || !valid(f)) {
+        throw GOLException.InvalidParameterException;
+    }
     var tmp_arr = data.slice(0,data.length);
     var out_arr = [];
     for(var i = 0; i < height; i++) {
@@ -77,8 +79,10 @@ function transposeGrid(data,width,height) {
 }
 
 function mapColPure(data,width,height,f) {
-    if(!valid(data) || !valid(width) || !valid(height) || !valid(f))
-        throw GOE.InvalidParameterException;
+    if(!valid(data) || !valid(width) || !valid(height) || !valid(f)) {
+        console.log("mapColPure: Invalid Parameter (data=" + data + ", width = " + width + ", height = " + height + ")");
+        throw GOLException.InvalidParameterException;
+    }
     var tmp_arr = transposeGrid(data,width,height);
     width  ^= height;
     height ^= width;
@@ -141,17 +145,6 @@ function Automata(width,height)
     this.height = height;
     this.data   = initCells(this.width, this.height);
 
-    Automata.prototype.tick = function() {
-        function sum(array) {return array.fold(function(a,b){return (a+b)});}
-
-        function lifecycle(array) {
-            return 0;
-        }
-
-        var counts = this.mapPure(function(cell){return cell.isActive?1:0;});
-        counts = lifecycle(counts);
-    }
-
     Automata.prototype.activeCells = function() {
         return this.data.filter(function(c){return c.isActive();});
     }
@@ -165,19 +158,64 @@ function Automata(width,height)
         this.map(function(v){if((Math.random()*100)<activeChance)v.makeActive();return v;});
     }
 
-    Automata.prototype.neighborhoods = function(radius) {
-        if(!valid(radius)) throw GOE.InvalidParameterException;
-        if(radius <= 0) throw GOE.RangeException;
+    Automata.prototype.tick = function() {
+        this.data = this.tickPure(1, this.data, this.width, this.height);
+    }
+
+    Automata.prototype.tickPure = function(radius, d, width, height) {
+        var toroidal  = [];
+        var torWidth  = 0;
+        var torHeight = 0;
+        var data = d.slice(0, d.length);
+
         var splice = function(row) {
             var head    = row.slice(0,radius);
             var tail    = row.slice(row.length-radius,row.length);
             var spliced = tail.concat(row.concat(head));
             return spliced;
         }
-        var toroidal = mapRowPure(this.data,this.width,this.height,splice);
-        toroidal = mapColPure(spliced,this.width+(2*radius),this.height,splice);
-        width  = width  + (2 * radius);
-        height = height + (2 * radius);
+
+        var countNeighbor = function(x,y) {
+            var count = 0;
+            for(var i = x; i <= (x + (2*radius)); i++)
+            {
+                for(var j = y; j <= (y + (2*radius)); j++)
+                {
+                    count += toroidal[(i * torWidth) + j].isActive()?1:0;
+                }
+            }
+            return Math.max(0,(count - (toroidal[((x + radius) * torWidth) + y + radius].isActive()?1:0)));
+        }
+
+        if(!valid(radius)) {
+            throw GOLException.InvalidParameterException;
+        }
+        if(radius <= 0) {
+            throw GOLException.RangeException;
+        }
+        
+        toroidal  = mapRowPure(data,width,height,splice);
+        toroidal  = mapColPure(toroidal,width+(2*radius),height,splice);
+        torWidth  = width  + (2*radius);
+        torHeight = height + (2*radius);
+
+        for(var x = 0; x < this.width; x++)
+        {
+            for(var y = 0; y < this.height; y++)
+            {
+                var count = countNeighbor(x,y);
+                if(count < 2) {
+                    data[(x * width) + y].makeInactive();
+                }
+                else if(count == 3) {
+                    data[(x * width) + y].makeActive();
+                }
+                else if(count > 3) {
+                    data[(x*width)+y].makeInactive();
+                }
+            }
+        }
+        return data;
     }
 
     Automata.prototype.map = function(f) {
@@ -301,6 +339,7 @@ function Canvas( width      // canvas width in px
         this.ctx.strokeStyle = Canvas.GridColor;
         range(0,width,cellGeometry.fst).map(function(x){makeLine(x,0,x,height);});
         range(0,height,cellGeometry.snd).map(function(y){makeLine(0,y,width,y);});
+        this.CA.tick();
     }
 
     this.width      = width;
@@ -309,7 +348,7 @@ function Canvas( width      // canvas width in px
     this.parentObj  = parentElem;
     this.elem       = null;
     this.CA         = new Automata(sizeX, sizeY);
-    this.CA.randomizeCells(25);
+    this.CA.randomizeCells(15);
     addToDOM(this);
     this.ctx        = this.elem.getContext('2d');
 }
@@ -331,8 +370,6 @@ function fetchParentElem(parentID)
 
 function makeGOL(width,height,sizeX,sizeY,parentID)
 {
-    var canvas = new Canvas(width,height,10,10,fetchParentElem(parentID));
-    canvas.draw();
-    canvas.CA.neighborhoods(3);
-    console.log("done with neighborhoods");
+    var canvas = new Canvas(width,height,80,80,fetchParentElem(parentID));
+    setInterval(function(){canvas.draw();},75);
 }
