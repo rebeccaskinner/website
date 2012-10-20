@@ -122,9 +122,9 @@ function Automata(width,height)
         this.x = x;
         this.y = y;
         this.state = valid(st)?st:Cell.INACTIVE;
-        Cell.prototype.makeActive   = function(){this.state = Cell.ACTIVE;}
-        Cell.prototype.makeInactive = function(){this.state = Cell.INACTIVE;}
-        Cell.prototype.toggleState  = function(){if(this.isActive()) this.makeInactive; else this.makeActive();}
+        Cell.prototype.makeActive   = function(){this.state = Cell.ACTIVE; return this}
+        Cell.prototype.makeInactive = function(){this.state = Cell.INACTIVE; return this}
+        Cell.prototype.toggleState  = function(){if(this.isActive()) return this.makeInactive(); else return this.makeActive();}
         Cell.prototype.isActive     = function(){return (this.state == Cell.ACTIVE);}
         Cell.prototype.toString     = function(){return this.isActive()?"1":"0";};
     }
@@ -154,11 +154,13 @@ function Automata(width,height)
     }
 
     Automata.prototype.randomizeCells = function(activeChance) { 
+        if(!valid(activeChance)) { activeChance = (Math.random() * 30); }
         if(!inRange(activeChance,0,100)) throw GOLException.RangeException;
         this.map(function(v){if((Math.random()*100)<activeChance)v.makeActive();return v;});
     }
 
     Automata.prototype.tick = function() {
+        if(this.data.every(function(elem){ return !elem.isActive(); },this)) this.randomizeCells();
         this.data = this.tickPure(1, this.data, this.width, this.height);
     }
 
@@ -181,10 +183,10 @@ function Automata(width,height)
             {
                 for(var j = y; j <= (y + (2*radius)); j++)
                 {
-                    count += toroidal[(i * torWidth) + j].isActive()?1:0;
+                    count += toroidal[(j * torWidth) + i].isActive()?1:0;
                 }
             }
-            return Math.max(0,(count - (toroidal[((x + radius) * torWidth) + y + radius].isActive()?1:0)));
+            return Math.max(0,(count-(toroidal[((y+radius)*torWidth)+x+radius].isActive()?1:0)));
         }
 
         if(!valid(radius)) {
@@ -196,26 +198,22 @@ function Automata(width,height)
         
         toroidal  = mapRowPure(data,width,height,splice);
         toroidal  = mapColPure(toroidal,width+(2*radius),height,splice);
-        torWidth  = width  + (2*radius);
-        torHeight = height + (2*radius);
+        torWidth  = width +(2*radius);
+        torHeight = height+(2*radius);
 
-        for(var x = 0; x < this.width; x++)
-        {
-            for(var y = 0; y < this.height; y++)
-            {
-                var count = countNeighbor(x,y);
-                if(count < 2) {
-                    data[(x * width) + y].makeInactive();
-                }
-                else if(count == 3) {
-                    data[(x * width) + y].makeActive();
-                }
-                else if(count > 3) {
-                    data[(x*width)+y].makeInactive();
-                }
+        return data.map(function(cell) {
+            var count = countNeighbor(cell.x,cell.y);
+            if(count < 2) {
+                return cell.makeInactive();
             }
-        }
-        return data;
+            else if(count == 3) {
+                return cell.makeActive();
+            }
+            else if(count > 3) {
+                return cell.makeInactive();
+            }
+        return cell;
+        });
     }
 
     Automata.prototype.map = function(f) {
@@ -307,7 +305,11 @@ function Canvas( width      // canvas width in px
     }
 
     Canvas.prototype.draw = function() {
-        var cellGeometry = calcGridDimensions(this.width, this.height, this.CA.width, this.CA.height);
+        var cellGeometry = calcGridDimensions( this.width
+                                             , this.height
+                                             , this.CA.width
+                                             , this.CA.height
+                                             );
         var ctx    = this.ctx;
         var width  = this.width;
         var height = this.height;
@@ -349,7 +351,7 @@ function Canvas( width      // canvas width in px
     this.parentObj  = parentElem;
     this.elem       = null;
     this.CA         = new Automata(sizeX, sizeY);
-    this.CA.randomizeCells(15);
+    this.CA.randomizeCells();
     addToDOM(this);
     this.ctx        = this.elem.getContext('2d');
 }
@@ -371,7 +373,6 @@ function fetchParentElem(parentID)
 
 function makeGOL(width,height,sizeX,sizeY,parentID)
 {
-    var canvas = new Canvas(width,height,64,10,fetchParentElem(parentID));
-    // var canvas = new Canvas(width,height,10,10,fetchParentElem(parentID));
+    var canvas = new Canvas(width,height,sizeX,sizeY,fetchParentElem(parentID));
     setInterval(function(){canvas.draw();},75);
 }
