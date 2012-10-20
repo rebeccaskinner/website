@@ -84,9 +84,9 @@ function mapColPure(data,width,height,f) {
         throw GOLException.InvalidParameterException;
     }
     var tmp_arr = transposeGrid(data,width,height);
-    width  ^= height;
-    height ^= width;
-    width  ^= height;
+    var tmp = width;
+    width   = height;
+    height  = tmp;
     var out_arr = mapRowPure(tmp_arr,width,height,f);
     width = out_arr.length / height;
     out_arr = transposeGrid(out_arr,width,height);
