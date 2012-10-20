@@ -80,7 +80,6 @@ function transposeGrid(data,width,height) {
 
 function mapColPure(data,width,height,f) {
     if(!valid(data) || !valid(width) || !valid(height) || !valid(f)) {
-        console.log("mapColPure: Invalid Parameter (data=" + data + ", width = " + width + ", height = " + height + ")");
         throw GOLException.InvalidParameterException;
     }
     var tmp_arr = transposeGrid(data,width,height);
@@ -124,7 +123,7 @@ function Automata(width,height)
         this.state = valid(st)?st:Cell.INACTIVE;
         Cell.prototype.makeActive   = function(){this.state = Cell.ACTIVE; return this}
         Cell.prototype.makeInactive = function(){this.state = Cell.INACTIVE; return this}
-        Cell.prototype.toggleState  = function(){if(this.isActive()) return this.makeInactive(); else return this.makeActive();}
+        Cell.prototype.toggleState  = function(){return (this.isActive()?:this.makeInactive():this.makeActive());}
         Cell.prototype.isActive     = function(){return (this.state == Cell.ACTIVE);}
         Cell.prototype.toString     = function(){return this.isActive()?"1":"0";};
     }
@@ -290,7 +289,6 @@ function Canvas( width      // canvas width in px
     function checkDimensions(x,y) { return (x && x > 0 && y && y > 0); }
 
     if(!checkDimensions(width,height)) {
-        console.log("Geometry " + width + "x" + height + " is invalid");
         throw GOLException.InvalidParameterException;
     }
 
