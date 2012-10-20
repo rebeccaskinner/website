@@ -123,7 +123,7 @@ function Automata(width,height)
         this.state = valid(st)?st:Cell.INACTIVE;
         Cell.prototype.makeActive   = function(){this.state = Cell.ACTIVE; return this}
         Cell.prototype.makeInactive = function(){this.state = Cell.INACTIVE; return this}
-        Cell.prototype.toggleState  = function(){return (this.isActive()?:this.makeInactive():this.makeActive());}
+        Cell.prototype.toggleState  = function(){return (this.isActive()?this.makeInactive():this.makeActive());}
         Cell.prototype.isActive     = function(){return (this.state == Cell.ACTIVE);}
         Cell.prototype.toString     = function(){return this.isActive()?"1":"0";};
     }
