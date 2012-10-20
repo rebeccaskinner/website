@@ -339,6 +339,7 @@ function Canvas( width      // canvas width in px
         this.ctx.strokeStyle = Canvas.GridColor;
         range(0,width,cellGeometry.fst).map(function(x){makeLine(x,0,x,height);});
         range(0,height,cellGeometry.snd).map(function(y){makeLine(0,y,width,y);});
+
         this.CA.tick();
     }
 
@@ -370,6 +371,7 @@ function fetchParentElem(parentID)
 
 function makeGOL(width,height,sizeX,sizeY,parentID)
 {
-    var canvas = new Canvas(width,height,80,80,fetchParentElem(parentID));
+    var canvas = new Canvas(width,height,64,10,fetchParentElem(parentID));
+    // var canvas = new Canvas(width,height,10,10,fetchParentElem(parentID));
     setInterval(function(){canvas.draw();},75);
 }
