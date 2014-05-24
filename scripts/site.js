@@ -2,7 +2,7 @@ function loadTOC() {
     var mc = document.getElementById("mainbox");
     mc.innerHTML += "<h1> Test </h1>";
     var rn = JSONRequest.get(
-            "file:///home/miyako/projects/timskinner.net/sections",
+            "file:///home/miyako/projects/rebeccaskinner.net/sections",
             function (requestNum, val, ex) {
                 if(val) {
                     mc.innerHTML += val;
